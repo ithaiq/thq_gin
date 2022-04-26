@@ -3,31 +3,40 @@ package internal
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"reflect"
 )
 
+type IClass interface {
+	Build(t *TGin)
+}
+
+//TGin gin封装
 type TGin struct {
 	*gin.Engine
-	g     *gin.RouterGroup
-	props []interface{}
+	g           *gin.RouterGroup
+	beanFactory *BeanFactory
 }
 
 func NewTGin() *TGin {
-	t := &TGin{Engine: gin.New()}
+	t := &TGin{Engine: gin.New(), beanFactory: NewBeanFactory()}
 	t.Use(ErrorHandler())
+	t.beanFactory.setBean(InitConfig())
 	return t
 }
 
 func (t *TGin) Launch() {
-	config := InitConfig()
-	t.Run(fmt.Sprintf(":%d", config.Server.Port))
+	var port int32 = 8080
+	if config := t.beanFactory.GetBean(new(SysConfig)); config != nil {
+		port = config.(*SysConfig).Server.Port
+	}
+	getCronTask().Start()
+	t.Run(fmt.Sprintf(":%d", port))
 }
 
 func (t *TGin) Mount(group string, cls ...IClass) *TGin {
 	t.g = t.Group(group)
 	for _, v := range cls {
 		v.Build(t)
-		t.setProp(v)
+		t.beanFactory.Inject(v)
 	}
 	return t
 }
@@ -52,31 +61,14 @@ func (t *TGin) Attach(f Mid) *TGin {
 }
 
 func (t *TGin) Beans(beans ...interface{}) *TGin {
-	t.props = append(t.props, beans...)
+	t.beanFactory.setBean(beans...)
 	return t
 }
 
-func (t *TGin) getProp(r reflect.Type) interface{} {
-	for _, p := range t.props {
-		if r == reflect.TypeOf(p) {
-			return p
-		}
+func (t *TGin) Task(expr string, f func()) *TGin {
+	err := getCronTask().AddFunc(expr, f)
+	if err != nil {
+		panic(err)
 	}
-	return nil
-}
-
-func (t *TGin) setProp(v IClass) {
-	vRef := reflect.ValueOf(v).Elem()
-	for i := 0; i < vRef.NumField(); i++ {
-		f := vRef.Field(i)
-		if !f.IsNil() || f.Kind() != reflect.Ptr {
-			continue
-		}
-		if p := t.getProp(f.Type()); p != nil {
-			// vRef.Field(0).Type() --> 指针 *GormAdapter
-			// vRef.Field(0).Type().Elem() -->指针指向的对象 GormAdapter
-			f.Set(reflect.New(f.Type().Elem()))
-			f.Elem().Set(reflect.ValueOf(p).Elem())
-		}
-	}
+	return t
 }

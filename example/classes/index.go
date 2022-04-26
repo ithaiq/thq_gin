@@ -9,6 +9,7 @@ import (
 
 type IndexClass struct {
 	*internal.GormAdapter
+	Age *internal.Value `prefix:"user.score"`
 }
 
 func NewIndexClass() *IndexClass {
@@ -28,7 +29,12 @@ func (i *IndexClass) GetModel(ctx *gin.Context) internal.Model {
 	return user
 }
 
+func (i *IndexClass) Test(c *gin.Context) string {
+	return "测试" + i.Age.String()
+}
+
 func (i *IndexClass) Build(t *internal.TGin) {
 	t.Handle("GET", "/index", i.GetIndex)
+	t.Handle("GET", "/test", i.Test)
 	t.Handle("GET", "/model/:id", i.GetModel)
 }

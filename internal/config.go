@@ -11,8 +11,9 @@ type ServerConfig struct {
 	Name string
 }
 
-type UserConfig map[string]interface{}
+type UserConfig map[interface{}]interface{}
 
+//SysConfig 系统配置
 type SysConfig struct {
 	Server *ServerConfig
 	Config UserConfig
@@ -41,4 +42,22 @@ func LoadConfigFile() []byte {
 		panic(err)
 	}
 	return b
+}
+
+// GetConfigValue 递归读取用户配置文件
+func GetConfigValue(m UserConfig, prefix []string, index int) interface{} {
+	key := prefix[index]
+	if v, ok := m[key]; ok {
+		if index == len(prefix)-1 {
+			return v
+		} else {
+			index = index + 1
+			if mv, ok := v.(UserConfig); ok {
+				return GetConfigValue(mv, prefix, index)
+			} else {
+				return nil
+			}
+		}
+	}
+	return nil
 }

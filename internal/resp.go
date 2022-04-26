@@ -14,6 +14,7 @@ func init() {
 	}
 }
 
+//Responder 响应封装
 type Responder interface {
 	RespondTo() gin.HandlerFunc
 }
