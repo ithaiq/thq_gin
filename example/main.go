@@ -8,6 +8,7 @@ import (
 
 func main() {
 	internal.NewTGin().
+		Beans(internal.NewGormAdapter()).
 		Attach(middlewares.NewUserMid()).
 		Mount("v1", classes.NewIndexClass()).
 		Launch()

@@ -1,12 +1,14 @@
 package classes
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/ithaiq/tgin/example/model"
 	"github.com/ithaiq/tgin/internal"
 )
 
 type IndexClass struct {
+	*internal.GormAdapter
 }
 
 func NewIndexClass() *IndexClass {
@@ -14,6 +16,9 @@ func NewIndexClass() *IndexClass {
 }
 
 func (i *IndexClass) GetIndex(ctx *gin.Context) string {
+	var id int
+	i.DB.Table("t1").Select("id").Limit(1).Scan(&id)
+	fmt.Println(id)
 	return "ok"
 }
 
